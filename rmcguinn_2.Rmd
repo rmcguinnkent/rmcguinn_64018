@@ -1,0 +1,92 @@
+---
+title: "Module 4: Assignment 2"
+author: "Ryan McGuinness"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Problem description
+As we discussed in the previous assignment, maximizing profit while avoiding layoffs for the Weigelt Corporation is a matter of optimizing the following objective function:  
+
+**MAX** $Z = 420(x_{1,l}+x_{2,l}+x_{3,l}) + 360(x_{1,m}+x_{2,m}+x_{3,m}) + 300(x_{1,s}+x_{2,s}+x_{3,s})$ subject to  
+$20x_{1,l} + 15x_{1,m} + 12x_{1,s} \leq 13000$,  
+$20x_{2,l} + 15x_{2,m} + 12x_{2,s} \leq 12000$,  
+$20x_{3,l} + 15x_{3,m} + 12x_{3,s} \leq 5000$,  
+$x_{1,l}+x_{1,m}+x_{1,s} \leq 750$,  
+$x_{2,l}+x_{2,m}+x_{2,s} \leq 900$,  
+$x_{3,l}+x_{3,m}+x_{3,s} \leq 450$,  
+$900(x_{1,l}+x_{1,m}+x_{1,s}) = 750(x_{2,l}+x_{2,m}+x_{2,s})$,  
+$450(x_{1,l}+x_{1,m}+x_{1,s}) = 750(x_{3,l}+x_{3,m}+x_{3,s})$,   
+$x_{1,l}+x_{2,l}+x_{3,l} \leq 900$,  
+$x_{1,m}+x_{2,m}+x_{3,m} \leq 1200$,  
+$x_{1,s}+x_{2,s}+x_{3,s} \leq 750$, and  
+$x_{i, j} \geq 0$.  
+
+As a reminder, $x_{i, j}$ refers to the daily quantity of $j$ sized units to produce at factory $i$.  
+
+To tackle this problem, I will use the `lpSolve` package.
+```{r}
+library(lpSolve)
+```
+
+### Setting up objective function and constraints
+The objective function will be represented by a vector. We need to give some order to the decision variables, so I will give them the order in which they are listed in the above formulation, i.e., $(x_{1,l}\ x_{2,l}\ x_{3,l}\ x_{1,m}\ x_{2,m}\ x_{3,m}\ x_{1,s}\ x_{2,s}\ x_{3,s})$
+
+```{r}
+objective <- c(420, 420, 420, 360, 360, 360, 300, 300, 300)
+```
+
+The left hand side of the constraints will be given in matrix form. The same order of decision variables are necessary. For constraints 7 and 8 above, it is necessary to subtract the right hand side in order to include all coefficients of decision variables in this matrix. Then, the constraint types and the constant on the right hand side of the constants will be given as vectors.
+```{r}
+constraints <- matrix(c(20, 0, 0, 15, 0, 0, 12, 0, 0,
+                        0, 20, 0, 0, 15, 0, 0, 12, 0,
+                        0, 0, 20, 0, 0, 15, 0, 0, 12,
+                        1, 0, 0, 1, 0, 0, 1, 0, 0,
+                        0, 1, 0, 0, 1, 0, 0, 1, 0,
+                        0, 0, 1, 0, 0, 1, 0, 0, 1,
+                        900, -750, 0, 900, -750, 0, 900, -750, 0,
+                        450, 0, -750, 450, 0, -750, 450, 0, -750,
+                        1, 1, 1, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 1, 1, 1, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 1, 1, 1), ncol=9, byrow=TRUE)
+
+constraint.type <- c(rep("<=", times=6), "=", "=", rep("<=", times=3))
+constants <- c(13000, 12000, 5000, 750, 900, 450, 0, 0, 900, 1200, 750)
+```
+
+### Solving the model
+The `lp()` function is used to solve the model.
+```{r}
+plant.production <- lp("max", objective, constraints, constraint.type, 
+                       constants)
+```
+
+Lastly, the objective function value and decision variable values are outputted.
+```{r}
+plant.production$objval
+plant.production$solution
+```
+### Checking the solution
+Since this is the first time I have used the `lpSolve` package, a couple manual checks may be in order, even if for nothing other than to make sure I have used the `lp()` function correctly. First, I will check to ensure that this choice decision variables do indeed produce the objective function value above.
+```{r}
+library(geometry)
+dot(objective, plant.production$solution)
+```
+
+Seeing no issue there, I will also manually check that all constraints are satisfied using matrix multiplication.
+```{r}
+constraints %*% plant.production$solution
+```
+
+Constraint 7, which relates to making sure there are no worker layoffs, is apparently violated by less than one part in a billion. This is likely a problem with floating point precision, and in any case is not indicative of any layoffs occurring. Since there are no other violations in the constraints to speak of, I am convinced that this is the solution to the Weigelt Corporation linear programming problem.
+
+### Solution description
+According to the solution found above, the daily production breakdown to maximize profit is as follows:  
+- Plant 1 should produce 516.667 large units and 177.778 medium units,  
+- Plant 2 should produce 666.667 medium units and 166.667 small units, and  
+- Plant 3 should produce 416.667 small units.
+
+This schema will maximize profits at $696000 per day.
