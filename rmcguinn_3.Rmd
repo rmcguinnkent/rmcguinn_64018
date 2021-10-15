@@ -1,0 +1,55 @@
+---
+title: "Assignment 3"
+author: "Ryan McGuinness"
+date: "10/15/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Problem description
+We need to minimize total cost of producing AEDs in two plants and of shipping from those plants to three warehouses. The table summarizing the costs is shown below.
+
+| Unit Shipping Costs | Warehouse 1 | Warehouse 2 | Warehouse 3 |   | Unit Production Cost | Monthly Capacity |
+|---------------------|-------------|-------------|-------------|---|----------------------|------------------|
+| Plant A             | \$22        | \$14        | \$30        |   | \$600                | 100              |
+| Plant B             | \$16        | \$20        | \$24        |   | \$625                | 120              |
+|                     |             |             |             |   |                      |                  |
+| Monthly Demand      | 80          | 60          | 70          |   |                      |                  |
+
+First, we notice that total supply is not equal to total demand. A dummy warehouse with a demand of 10 units monthly is needed to correct this to equality.
+
+| Unit Shipping Costs | Warehouse 1 | Warehouse 2 | Warehouse 3 | Warehouse 4(D) |   | Unit Production Cost | Monthly Capacity |
+|---------------------|-------------|-------------|-------------|----------------|---|----------------------|------------------|
+| Plant A             | \$22        | \$14        | \$30        | \$0            |   | \$600                | 100              |
+| Plant B             | \$16        | \$20        | \$24        | \$0            |   | \$625                | 120              |
+|                     |             |             |             |                |   |                      |                  |
+| Monthly Demand      | 80          | 60          | 70          | 10             |   |                      |                  |
+
+This can be represented by the following linear program:  
+$\textbf{MIN } Z = 622x_{A1} + 614x_{A2} + 630x_{A3} + 641x_{B1} + 645x_{B2} + 649x_{B3}$ subject to  
+$x_{A1} + x_{A2} + x_{A3} = 100$,  
+$x_{B1} + x_{B2} + x_{B3} = 120$,  
+$x_{A1} + x_{B1} = 80$,  
+$x_{A2} + x_{B2} = 60$,  
+$x_{A3} + x_{B3} = 70$,  
+$x_{A4} + x_{B4} = 10$, and  
+$x_{i,j} \geq 0$.  
+
+The formulation is included in the written up in the AED.lp file.
+```{r}
+library(lpSolveAPI)
+AED <- read.lp("AED.lp")
+AED
+```
+
+Now we solve the problem.
+```{r}
+solve(AED)
+get.objective(AED)
+get.variables(AED)
+```
+
+The last two values given are for the dummy variables $x_{A4}$ and $x_{B4}$. Our model tells us that out of the 100 units we can produce at Plant A, 60 should be set to warehouse 2 and 40 to warehouse 3, and out of the 120 units we can produce at Plant B, we only produce 110, send 80 to warehouse 1 and 30 to warehouse 3.
