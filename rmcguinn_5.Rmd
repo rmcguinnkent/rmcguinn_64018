@@ -1,0 +1,93 @@
+---
+title: "Goal Programming"
+author: "Ryan McGuinness"
+date: "11/3/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem Descripiton
+The Emax Corporation has developed three new products, and a decision must be made on which mix of products are to be released. Primary consideration is given to total profit, workforce stability, and achieving an increase in the company's overall earnings next year from the $75 million achieved this year. In particular, we are asked to solve the following linear programming model:  
+\ \ \ \ \ \ Maximize $Z = P - 6C - 3D$, where  
+\ \ \ \ \ \ $P$ = total (discounted) profit over the life of the new products,  
+\ \ \ \ \ \ $C$ = change (in either direction) in the current level of employment, and  
+\ \ \ \ \ \ $D$ = decrease in next year's earnings from the current year's.
+
+| Factor             | Product 1 | Product 2 | Product 3 | Goal       | Units     |
+|--------------------|-------|-------|-------|------------|-----------------------|
+| Total Profit       | 20    | 15    | 25    | Maximize   | Millions of Dollars   |
+| Employment Level   | 6     | 4     | 5     |  = 50      | Hundreds of Employees |
+| Earnings Next Year | 8     | 7     | 5     |  $\geq$ 75 | Millions of Dollars   |
+
+## Solving the Goal Programming Model
+### Defining Variables
+Letting $x_i$ represent the production rate of product $i$, we define the auxiliary variables as $y_1 = 6x_1 + 4x_2 + 5x_3 - 50 = y_1^+ - y_1^-$ and $y_2 = 8x_1 + 7x_2 + 5x_3 - 75 = y_2^+ - y_2^-$. Then, $y_1^+$ and $y_1^-$ represents the amount over and under the employment level goal, respectively, and $y_2^+$ and $y_2^-$ represents the amount over and under the earnings goal over next year, respectively. Additionally, we can express the total profit variable $P$ as $P = 20x_1 + 15x_2 + 25x_3$.
+
+### Formulating the LP Model
+We must now rewrite the objective function $Z$ in terms of the above variables. Considering $C = y_1^+ + y_1^-$ and $D = y_2^-$ we have $Z = P - 6C - 3D = 20x_1 + 15x_2 + 25x_3 - 6y_1^+ - 6y_1^- - 3y_2^-$. 
+
+The full LP Model is as follows:  
+$\textit{Maximize } Z = 20x_1 + 15x_2 + 25x_3 - 6y_1^+ - 6y_1^- - 3y_2^-$ subject to  
+$6x_1 + 4x_2 + 5x_3 - (y_1^+ - y_1^-) = 50$,  
+$8x_1 + 7x_2 + 5x_3 - (y_2^+ - y_2^-) = 75$,  
+$x_j \geq 0$, $y_i^+ \geq 0$, and $y_i^- \geq 0$.
+
+### Solving the LP Model
+The model described above is represented in the file `Emax.lp`. We will use the `lpSolveAPI` package to read the model and solve it.
+```{r}
+library(lpSolveAPI)
+gp <- read.lp("Emax.lp")
+
+# Solving the model
+solve(gp)
+gp
+```
+
+We use the `get.objective` and `get.variables` functions to find the maximum value of the objective function and the values of the decision variables. The first three variables in the `Emax.lp` model correspond to the decision variables $x_j$.
+```{r}
+# Finding the objective function value
+get.objective(gp)
+
+# Finding the values of the variables
+# In the order: x1 x2 x3 y1+ y1- y2+ y2-
+get.variables(gp)
+```
+
+The LP model output tells us that the objective function is maximized if products 1 and 2 are ignored and only product 3 is produced at a rate of 15 units per period, despite the requirement of 2500 new employees. 
+
+### Assessing Results
+The solution of ignoring 2 of the 3 products in favor of increasing the number of employees by 50% appears absurd. However, as the problem is stated, this is the solution which optimizes the objective function. When increasing the penalty of the change in the level employment by just 1, the solved model will no longer call for an increase in the workforce and will call for the production of product 2. Although the problem as it is asked
+
+## Prioritizing Goals
+If we instead consider the goals of workforce stability and an increase in next year's earnings as a higher priority than total profit over the life of the new products, we instead get the following LP model:  
+$\textit{Maximize } Z = 20x_1 + 15x_2 + 25x_3 - 6My_1^+ - 6My_1^- - 3My_2^-$ subject to  
+$6x_1 + 4x_2 + 5x_3 - (y_1^+ - y_1^-) = 50$,  
+$8x_1 + 7x_2 + 5x_3 - (y_2^+ - y_2^-) = 75$,  
+$x_j \geq 0$, $y_i^+ \geq 0$, and $y_i^- \geq 0$.
+
+### Solving the LP Model
+The model above is represented in `Emax_prioritized.lp`. As before, we use the `lpSolveAPI` package to solve this model.
+```{r}
+gp_preempt <- read.lp("Emax_prioritized.lp")
+
+# Solving the model
+solve(gp_preempt)
+gp_preempt
+```
+
+```{r}
+# Finding the objective function value
+get.objective(gp_preempt)
+
+# Finding the values of the variables
+# In the order: x1 x2 x3 y1+ y1- y2+ y2-
+get.variables(gp_preempt)
+```
+
+This time, the model tells us to produce products 2 and 3 at the production rates of 8.33 and 3.33, respectively, and does not require any change in the level of employment, while the objective function is comparable to the function without prioritizing the employment and earnings goals. 
+
+## Final Comments
+While the first LP model above maximizes the objective function given by the problem, the solution of increasing the number of employees by 50% would very likely be considered infeasible. In this case, we examined the model where the goals of workforce stability and increasing earnings are given higher priority over profit over the life of the new products, which resulted in what ought to be a feasible solution with nearly the same objective function value as before. It is that solution where workforce stability is prioritized that management would likely be much happier with.
