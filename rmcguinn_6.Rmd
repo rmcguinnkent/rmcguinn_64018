@@ -1,0 +1,93 @@
+---
+title: "Integer Programming"
+author: "Ryan McGuinness"
+date: "11/21/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem Description
+AP is a shipping service can guarantee overnight delivery within the continental US with various hubs at major cities where packages are received at and shipped between. The manager of the Cleveland hub is interested in determining the most effective way to schedule works to keep wage expenses as low as possible. The following table shows the minimum number of workers needed each day of the week.
+
+| Day of the Week | Workers Required |
+|-----------------|:----------------:|
+| Sunday          | 18               |
+| Monday          | 27               |
+| Tuesday         | 22               |
+| Wednesday       | 26               |
+| Thursday        | 25               |
+| Friday          | 21               |
+| Saturday        | 19               |
+
+Package handlers work 5 days a week with two consecutive days off. The following table shows possible shifts and the salaries for workers on that shift.
+
+| Shift | Days Off               | Wage |
+|:-----:|------------------------|------|
+| 1     | Sunday and Monday      | $775 |
+| 2     | Monday and Tuesday     | $800 |
+| 3     | Tuesday and Wednesday  | $800 |
+| 4     | Wednesday and Thursday | $800 |
+| 5     | Thursday and Friday    | $800 |
+| 6     | Friday and Saturday    | $775 |
+| 7     | Saturday and Sunday    | $750 |
+
+## Formulating LP Model
+The problem can be expressed in the following LP model:  
+
+$\textbf{MIN } Z = 775x_1 + 800x_2 + 800x_3 + 800x_4 + 800x_5 + 775x_6 + 750x_7$ subject to  
+$x_2 + x_3 + x_4 + x_5 + x_6 \geq 18$,  
+$x_3 + x_4 + x_5 + x_6 + x_7 \geq 27$,  
+$x_1 + x_4 + x_5 + x_6 + x_7 \geq 22$,  
+$x_1 + x_2 + x_5 + x_6 + x_7 \geq 26$,  
+$x_1 + x_2 + x_3 + x_6 + x_7 \geq 25$,  
+$x_1 + x_2 + x_3 + x_4 + x_7 \geq 21$,  
+$x_1 + x_2 + x_3 + x_4 + x_5 \geq 19$,  
+for non-negative integers $x_i$.  
+
+Here, $x_i$ refers to the number of employees scheduled for shift i, and Z is the weekly wage expenses. The constraints are to ensure that enough employees are scheduled on each day of the week.
+
+## Solving Model
+We use the `lpSolveAPI` package to solve this model. The model is formulated in the file `AP.lp`.  
+```{r}
+# Reading lp file
+library(lpSolveAPI)
+AP <- read.lp("AP.lp")
+solve(AP)
+```
+
+The `get.objective` and `get.variables` functions can be used to find the objective function (total weekly wage expenses) and number of workers to work on each shift under the optimal solution.
+```{r}
+# Solving lp model
+get.objective(AP)
+get.variables(AP)
+```
+
+## Results
+The following table summarizes the number of workers to work on each shift.
+
+| Shift | Number of Workers |
+|:-----:|:-----------------:|
+| 1     | 2                 |
+| 2     | 4                 |
+| 3     | 5                 |
+| 4     | 0                 |
+| 5     | 8                 |
+| 6     | 1                 |
+| 7     | 13                |
+
+Under this solution, the weekly wage expense totals to $25,675, and the following table details the number of workers available on each day.
+\newpage
+
+| Day of the Week  | Available Workers |
+|------------------|:-----------------:|
+| Sunday           | 18                |
+| Monday           | 27                |
+| Tuesday          | 24                |
+| Wednesday        | 28                |
+| Thursday         | 25                |
+| Friday           | 24                |
+| Saturday         | 19                |
+
