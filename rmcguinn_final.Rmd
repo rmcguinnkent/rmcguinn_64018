@@ -1,0 +1,69 @@
+---
+title: "64018 Final"
+author: "Ryan McGuinness"
+date: "12/14/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Team members
+Ryan McGuinness  
+Ryan Spake
+
+
+## Assumptions Not Specifically Mentioned
+1. Each group should have an equal chance of doing well, i.e. no supergroups  
+
+## Factors of Success
+Three factors to predict student group success are  
+1. Course grade - grade of student in the course  
+2. Experience - whether the student has done a similar project  
+3. Knowledge on Topic - how well the student knows the details of the task at hand
+
+## Collection of Data
+The course administrator should have no problem collecting course grade for the students. The other factors can be collected by survey/questionnaire or simple show of hands during class.
+
+```{r}
+# Generating random student data
+set.seed(123456)
+stu_data <- data.frame(grade = rnorm(12, mean=0.80, sd=0.1),
+                       experience = sample(0:1, size=12, replace=TRUE),
+                       knowledge = sample.int(5, size=12, replace=TRUE))
+
+# Ensuring max grade of 1 and rounding to two places
+library(dplyr)
+stu_data <- stu_data %>% mutate(grade=if_else(grade>1, 1, round(grade, 2)))
+head(stu_data)
+```
+
+## Decision Variables
+The decision variables are the members of the groups. $g_{i,j}$ denotes whether the jth student is in the ith group
+
+## Objective Function
+The objective of this project is to maximize individual group chance success. Since the groups will have equal chance of success we only need the success chance of one group in the objective function: $\textbf{MAX } Z=q_1$ letting $q_i$ denote the ith group's chance of success. We can define chance of success based on the factors above. To keep things simple, let's define $q_i = \Sigma_j \ x_j + e_j + 0.2k_j$ where $x_j$ is the jth student's grade, $e_j$ is whether the jth student has similar prior experience, and $k_j$ is the student's reported knowledge of the task at hand, for all j students in group i. The coefficients may be adjusted as necessary. 
+
+## Constraints
+The constraints of the model are the following  
+* All groups should be about equally likely to succeed,  
+* All groups have exactly 3 members
+* Members are to be in exactly one group
+
+```{r}
+library(lpSolveAPI)
+
+model <- read.lp("Student.lp")
+solve(model)
+
+get.objective(model)
+get.variables(model)
+```
+
+## Group decisions
+Below are the decisions for where each student should end up:  
+Group 1: Students 1, 8, 10  
+Group 2: Students 2, 3, 5  
+Group 3: Students 4, 7, 11  
+Group 4: Students 6, 9, 12  
