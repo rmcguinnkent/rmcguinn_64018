@@ -48,7 +48,7 @@ The objective of this project is to maximize individual group chance success. Si
 ## Constraints
 The constraints of the model are the following  
 * All groups should be about equally likely to succeed,  
-* All groups have exactly 3 members
+* All groups have exactly 3 members  
 * Members are to be in exactly one group
 
 ```{r}
